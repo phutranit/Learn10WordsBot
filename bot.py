@@ -1,11 +1,14 @@
 import json
-from telegram import Bot
 import os
+import schedule
+import time
+from telegram import Bot
 
 TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
-STATE_FILE = "state.json"
+
 WORDS_FILE = "vobeng.json"
+STATE_FILE = "state.json"
 
 bot = Bot(token=TOKEN)
 
@@ -27,31 +30,47 @@ def save_state(state):
 def build_message(words):
     lines = ["📚 *10 từ vựng hôm nay:*"]
     for i, item in enumerate(words, 1):
-        line = (
-            f"{i}. *{item['w']}* — {item['m']}\n"
-            f"   /{item['ipa']}/\n"
-            f"   _{item['sample']}_"
+        w = item.get("w", "")
+        m = item.get("m", "")
+        ipa = item.get("ipa", "")
+        sample = item.get("sample", "")
+
+        part = (
+            f"{i}. *{w}* — {m}\n"
+            f"   _{ipa}_\n"
+            f"   *Ví dụ:* {sample}\n"
         )
-        lines.append(line)
+        lines.append(part)
     return "\n".join(lines)
 
 def send_daily_words():
     words = load_words()
     state = load_state()
 
-    start = state["index"]
-    end = start + 10   # 🔥 gửi 10 từ mỗi ngày
+    index = state["index"]
+    end = index + 10  # gửi 10 từ mỗi ngày
 
-    if start >= len(words):
-        bot.send_message(chat_id=CHAT_ID, text="🎉 Bạn đã học hết từ vựng!", parse_mode="Markdown")
+    if index >= len(words):
+        bot.send_message(
+            chat_id=CHAT_ID,
+            text="🎉 Bạn đã học hết toàn bộ từ vựng!",
+            parse_mode="Markdown"
+        )
         return
 
-    today_words = words[start:end]
+    today_words = words[index:end]
     message = build_message(today_words)
+
     bot.send_message(chat_id=CHAT_ID, text=message, parse_mode="Markdown")
 
     state["index"] = end
     save_state(state)
 
+# Lên lịch chạy lúc 22:15 mỗi ngày
+schedule.every().day.at("22:15").do(send_daily_words)
+
 if __name__ == "__main__":
-    send_daily_words()
+    print("Bot đang chạy và chờ đến 22:15 mỗi ngày...")
+    while True:
+        schedule.run_pending()
+        time.sleep(1)

@@ -3,9 +3,10 @@ import os
 import schedule
 import time
 from telegram import Bot
+from telegram.constants import ParseMode
 
 TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = os.getenv("CHAT_ID")
+CHAT_ID = int(os.getenv("CHAT_ID"))
 
 WORDS_FILE = "vobeng.json"
 STATE_FILE = "state.json"
@@ -29,48 +30,51 @@ def save_state(state):
 
 def build_message(words):
     lines = ["📚 *10 từ vựng hôm nay:*"]
-    for i, item in enumerate(words, 1):
-        w = item.get("w", "")
-        m = item.get("m", "")
-        ipa = item.get("ipa", "")
-        sample = item.get("sample", "")
-
+    for i, item in enumerate(words, start=1):
         part = (
-            f"{i}. *{w}* — {m}\n"
-            f"   _{ipa}_\n"
-            f"   *Ví dụ:* {sample}\n"
+            f"{i}. *{item['w']}* — {item['m']}\n"
+            f"   _{item['ipa']}_\n"
+            f"   *Ví dụ:* {item['sample']}\n"
         )
         lines.append(part)
     return "\n".join(lines)
 
-def send_daily_words():
+async def send_daily_words():
     words = load_words()
     state = load_state()
 
     index = state["index"]
-    end = index + 10  # gửi 10 từ mỗi ngày
+    end = index + 10
 
     if index >= len(words):
-        bot.send_message(
+        await bot.send_message(
             chat_id=CHAT_ID,
-            text="🎉 Bạn đã học hết toàn bộ từ vựng!",
-            parse_mode="Markdown"
+            text="🎉 Bạn đã học hết từ vựng!",
+            parse_mode=ParseMode.MARKDOWN
         )
         return
 
     today_words = words[index:end]
     message = build_message(today_words)
 
-    bot.send_message(chat_id=CHAT_ID, text=message, parse_mode="Markdown")
+    await bot.send_message(
+        chat_id=CHAT_ID,
+        text=message,
+        parse_mode=ParseMode.MARKDOWN
+    )
 
     state["index"] = end
     save_state(state)
 
-# Lên lịch chạy lúc 22:15 mỗi ngày
-schedule.every().day.at("22:20").do(send_daily_words)
+def job():
+    import asyncio
+    asyncio.run(send_daily_words())
+
+# Lên lịch chạy lúc 22:15 hằng ngày
+schedule.every().day.at("22:20").do(job)
 
 if __name__ == "__main__":
-    print("Bot đang chạy và chờ đến 22:20 mỗi ngày...")
+    print("Bot is running... Waiting for 22:15 everyday.")
     while True:
         schedule.run_pending()
         time.sleep(1)

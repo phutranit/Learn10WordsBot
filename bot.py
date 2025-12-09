@@ -71,7 +71,7 @@ def job():
     asyncio.run(send_daily_words())
 
 # Lên lịch chạy lúc 22:15 hằng ngày
-schedule.every().day.at("22:20").do(job)
+schedule.every().day.at("22:40").do(job)
 
 if __name__ == "__main__":
     print("Bot is running... Waiting for 22:15 everyday.")

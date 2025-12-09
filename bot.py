@@ -67,10 +67,10 @@ def send_daily_words():
     save_state(state)
 
 # Lên lịch chạy lúc 22:15 mỗi ngày
-schedule.every().day.at("22:15").do(send_daily_words)
+schedule.every().day.at("22:20").do(send_daily_words)
 
 if __name__ == "__main__":
-    print("Bot đang chạy và chờ đến 22:15 mỗi ngày...")
+    print("Bot đang chạy và chờ đến 22:20 mỗi ngày...")
     while True:
         schedule.run_pending()
         time.sleep(1)
